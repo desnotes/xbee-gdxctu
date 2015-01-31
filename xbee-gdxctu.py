@@ -28,10 +28,10 @@ remembers the value and should be quicker subsequently.
 defaults file called xbee-gdxctu.py.rc (the program name with '.rc' tacked on).
 """
 
-VERSION = "2.13"
+VERSION = "2.14"
 VERSIONTEXT = "Copyright Gregory Dudek (c) 2009, 2010, 2011. changeset 13"
 ORIGIN  = "http://www.dudek.org/blog/180"
-SELFDOWNLOAD="http://www.dudek.org/blog/Downloads/xbee-gdxctu.py"
+SELFDOWNLOAD="https://github.com/maddingo/xbee-gdxctu/blob/master/xbee-gdxctu.py"
 debug=0
 
 import serial
@@ -44,7 +44,8 @@ import re
 ############################################################################
 lastbaud = 0  # default, will be verified and maybe reset
 defaultPAN = "3332"  # this can be modified in the auto-generated defaults file: xbee-gdxctu.py.rc
-VERSIONCHECKDAYS=30  # check for updated version every 30 days
+VERSIONCHECKDAYS=-30  # check for updated version every number of days (negative means no version check)
+PortPattern="/dev/ttyUSB*"
 
 
 ############################################################################
@@ -122,10 +123,10 @@ def identification():
     """
     global firmware, hwDeviceCode
     ser.write("ATVR\r")
-    firmware = ser.readline(eol='\r').strip()  # e.g. 1221
+    firmware = ser.readline().strip()  # e.g. 1221
     saveprefs()  # save the successful baud rate, in case of exit by control-C later
     ser.write("ATHV\r")
-    hwDeviceCode = ser.readline(eol='\r').strip().upper()   # e.g. 1941
+    hwDeviceCode = ser.readline().strip().upper()   # e.g. 1941
 
     if hwDeviceCode[0:2] in [ "18","17" ]:
         print "XBee Series 1 device."
@@ -195,7 +196,7 @@ def list_Key_values():
               #print "waiting for more.",map(ord,reply)
           reply = ""  # since we printed it already above.
       elif i[0:2]=="BD":
-          reply = ser.readline(eol='\r').replace("\r","\n").strip()
+          reply = ser.readline().replace("\r","\n").strip()
           try: reply = reply + " => " + baudmap[reply]
           except: pass
       elif i[0:2]=="%V":
@@ -286,7 +287,8 @@ def saveprefs():
     putpref(f,"firmware")
     putpref(f,"defaultPAN")
     putpref(f,"next_version_check"," # when to check again")
-    putpref(f,"VERSIONCHECKDAYS"," # how often to check the version (days)")
+    putpref(f,"VERSIONCHECKDAYS"," # how often to check the version (days), negative number disables thid feature")
+    putpref(f,"PortPattern"," # pattern for port devives, like /dev/ttyUSB*")
     f.close()
 
 def versioncheck():
@@ -379,7 +381,7 @@ saveprefs()
 if len(sys.argv)>1:
     devname = sys.argv[1]
 else: 
-    usbs = glob.glob("/dev/tty.usbserial-*")
+    usbs = glob.glob(PortPattern)
     if len(usbs)>1: 
         print "**** Warning: multiple USB devices. ***"
         print usbs
@@ -438,15 +440,15 @@ for baud in [lastbaud, 9600,19200,4800,57600,115200,38400,300, 1200, 2400]:
     sys.stdout.flush()
     ser = serial.Serial(devname, baud, timeout=1) # timeout > 1 sec is important for +++ handler
     enterCommandMode()
-    s = ser.readline(eol='\r')
+    s = ser.readline()
     #line = ser.readline()
     #x = ser.read()
     if len(s)<1: 
         # maybe we are already in command mode, huh?
         ser.write("\r")
-        s = ser.readline(eol='\r')
+        s = ser.readline()
         ser.write("AT\r")
-        s = ser.readline(eol='\r').strip()
+        s = ser.readline().strip()
     if len(s)>1: 
         if ord(s[0])>ord("Z"): s = s[1:]
         print "got: '"+s.strip()+"' " # ,len(s),"characters. ",map(ord,s)
@@ -503,7 +505,7 @@ while 1:
     elif cmd == "+++" or cmd == "+":
        # Special wakeup command to XBee
         enterCommandMode()
-        s = ser.readline(eol='\r').strip()
+        s = ser.readline().strip()
         continue
     elif cmd == "keys":
        # Special command to quary specific default settings (what we ran at startup)
