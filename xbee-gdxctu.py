@@ -287,7 +287,7 @@ def saveprefs():
     putpref(f,"firmware")
     putpref(f,"defaultPAN")
     putpref(f,"next_version_check"," # when to check again")
-    putpref(f,"VERSIONCHECKDAYS"," # how often to check the version (days), negative number disables thid feature")
+    putpref(f,"VERSIONCHECKDAYS"," # how often to check the version (days), negative number disables this feature")
     putpref(f,"PortPattern"," # pattern for port devives, like /dev/ttyUSB*")
     f.close()
 
